@@ -27,6 +27,23 @@ object ShoppingSession {
     }
   }
 
+  def remove[F[_]: Monad: Logger](item: String, quantity: Int, cart: ShoppingCart): F[ShoppingCart] = {
+    val lItem = item.toLowerCase
+    cart.items.get(lItem) match {
+      case Some(q) =>
+        if (q.quantity > quantity)
+          Logger[F].log(s"Remove $quantity × $lItem from cart").map { _ =>
+            cart.copy(items = cart.items.updated(lItem, Quantity(q.quantity - quantity, q.unitPrice)))
+          }
+        else
+          Logger[F].log(s"Remove all $lItem from cart").map { _ =>
+            cart.copy(items = cart.items - lItem)
+          }
+      case None =>
+        Logger[F].log(s"Not in cart, $lItem").map { _ => cart }
+    }
+  }
+
   def checkout[F[_]: Payment](cart: ShoppingCart): F[PaymentSummary] = {
     val totalCost = cart.items.values.foldLeft(0.0){ (total, q) => total + q.quantity * q.unitPrice }
     Payment[F].pay(totalCost)

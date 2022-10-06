@@ -19,6 +19,48 @@ class ShoppingSessionSuite extends CatsEffectSuite {
     }
   }
 
+  test("remove items from shopping cart") {
+    import HttpClientSuite.SuccessHttpClientIO
+
+    for {
+      cart1 <- ShoppingSession.add[IO]("Cornflakes", 2, ShoppingCart())
+      cart2 <- ShoppingSession.add[IO]("Cornflakes", 1, cart1)
+      cart3 <- ShoppingSession.remove[IO]("Cornflakes", 2, cart2)
+    } yield {
+      val result = cart3.items.get("cornflakes")
+      assertEquals(result, Some(Quantity(1, 1.99)))
+    }
+  }
+
+  test("remove all items from shopping cart") {
+    import HttpClientSuite.SuccessHttpClientIO
+
+    for {
+      cart1 <- ShoppingSession.add[IO]("Cornflakes", 2, ShoppingCart())
+      cart2 <- ShoppingSession.add[IO]("Cornflakes", 1, cart1)
+      cart3 <- ShoppingSession.remove[IO]("Cornflakes", 4, cart2)
+    } yield {
+      val result = cart3.items.get("cornflakes")
+      assertEquals(result, None)
+    }
+  }
+
+  test("remove items not in shopping cart") {
+    import HttpClientSuite.SuccessHttpClientIO
+
+    for {
+      cart1 <- ShoppingSession.add[IO]("Cornflakes", 2, ShoppingCart())
+      cart2 <- ShoppingSession.add[IO]("Cornflakes", 1, cart1)
+      cart3 <- ShoppingSession.remove[IO]("Bread", 4, cart2)
+    } yield {
+      val result = cart3.items.get("cornflakes")
+      assertEquals(result, Some(Quantity(3, 1.99)))
+      val result2 = cart3.items.get("bread")
+      assertEquals(result2, None)
+    }
+  }
+
+
   test("not add items to shopping cart when item can't be found") {
     import HttpClientSuite.FailedHttpClientIO
 
